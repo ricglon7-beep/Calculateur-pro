@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Turf Expert v2.5 - Multi-Profils</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 10px; margin: 0; color: #333; }
+        .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        
+        /* Gestion des Onglets */
+        .tab-bar { display: flex; gap: 5px; overflow-x: auto; padding: 10px 0; margin-bottom: 10px; }
+        .tab { background: #cfd8dc; padding: 10px 15px; border-radius: 8px; cursor: pointer; white-space: nowrap; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .tab.active { background: #d32f2f; color: white; }
+        .btn-add-tab { background: #1976d2; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .delete-tab { color: #fff; font-size: 0.8em; background: rgba(0,0,0,0.2); border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+
+        h2 { color: #d32f2f; text-align: center; font-size: 1em; margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; text-transform: uppercase; }
+        
+        .grid-saisie { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
+        .horse-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 5px; text-align: center; }
+        .horse-card input[type="number"] { width: 100%; padding: 8px 0; font-size: 1.1em; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+        .base-label { display: block; margin-top: 5px; font-size: 0.7em; font-weight: bold; color: #d32f2f; }
+
+        .import-area { background: #e3f2fd; border: 2px dashed #1976d2; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+        .arrivee-row { display: flex; justify-content: center; gap: 8px; margin: 10px 0; }
+        .arrivee-input { width: 40px; height: 40px; border: 2px solid #ef6c00; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.1em; color: #ef6c00; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        button { width: 100%; padding: 15px; background: #2e7d32; color: white; border: none; border-radius: 10px; font-size: 1em; font-weight: bold; cursor: pointer; }
+        .btn-reset { background: #757575; font-size: 0.9em; }
+        
+        .ticket { background: #f9f9f9; border-left: 5px solid #bdc3c7; padding: 12px; margin-bottom: 8px; border-radius: 5px; font-family: monospace; font-size: 0.9em; line-height: 1.4; }
+        .gagnant { border: 2px solid #2e7d32; background: #e8f5e9; border-left-width: 8px; }
+        .ordre { border: 2px solid #ffab00; background: #fff8e1; border-left-width: 8px; }
+        .bonus { border: 2px solid #f9a825; background: #fffde7; border-left-width: 8px; }
+        
+        .summary-box { color: white; padding: 15px; border-radius: 10px; text-align: center; margin-top: 15px; font-weight: bold; font-size: 1.1em; }
+        .no-print { display: block; }
+        @media print { .no-print { display: none; } .tab-bar, .btn-add-tab { display: none; } }
+        
+        .input-group { display: flex; gap: 5px; margin-bottom: 8px; }
+        .input-group input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.9em; }
+        
+        .flexi-zone { background: #fff3e0; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #ffe0b2; }
+        label { font-size: 0.8em; font-weight: bold; color: #e65100; }
+    </style>
+</head>
+<body>
+
+<div class="tab-bar no-print" id="tabBar">
+    </div>
+<button class="btn-add-tab no-print" onclick="ajouterProfil()">+ Nouveau Profil (Nom)</button>
+
+<div id="appBody">
+    </div>
+
+<script>
+    let profils = {}; // Stocke les données de chaque onglet
+    let profilActif = "";
+    let targetInput = null;
+
+    // Initialisation
+    function ajouterProfil() {
+        let nom = prompt("Nom du profil (ex: Pierre, Paul...) :");
+        if (!nom) return;
+        if (profils[nom]) { alert("Ce nom existe déjà"); return; }
+
+        profils[nom] = {
+            typePari: 'quinte',
+            modeFlexi: '1',
+            chevaux: Array(8).fill(""),
+            bases: Array(8).fill(false),
+            arrivee: Array(5).fill(""),
+            rapports: { o: "", d: "", b4: "", b45: "", b3: "" },
+            tickets: [],
+            miseTotal: 0
+        };
+        
+        selectProfil(nom);
+        renderTabs();
+    }
+
+    function renderTabs() {
+        let html = "";
+        for (let nom in profils) {
+            html += `<div class="tab ${nom === profilActif ? 'active' : ''}" onclick="selectProfil('${nom}')">
+                        ${nom} 
+                        <span class="delete-tab" onclick="supprimerProfil(event, '${nom}')">×</span>
+                    </div>`;
+        }
+        document.getElementById('tabBar').innerHTML = html;
+    }
+
+    function selectProfil(nom) {
+        if (profilActif && profils[profilActif]) sauvegarderEtatActuel();
+        profilActif = nom;
+        chargerProfil(nom);
+        renderTabs();
+    }
+
+    function supprimerProfil(e, nom) {
+        e.stopPropagation();
+        if (confirm(`Supprimer le profil de ${nom} ?`)) {
+            delete profils[nom];
+            let restants = Object.keys(profils);
+            if (restants.length > 0) selectProfil(restants[0]);
+            else {
+                profilActif = "";
+                document.getElementById('appBody').innerHTML = "<p style='text-align:center; margin-top:50px;'>Cliquez sur le bouton bleu pour commencer.</p>";
+                renderTabs();
+            }
+        }
+    }
+
+    function sauvegarderEtatActuel() {
+        let p = profils[profilActif];
+        p.typePari = document.getElementById('typePari').value;
+        p.modeFlexi = document.getElementById('modeFlexi').value;
+        for (let i = 1; i <= 8; i++) {
+            p.chevaux[i-1] = document.getElementById('h' + i).value;
+            p.bases[i-1] = document.getElementById('b' + i).checked;
+        }
+        // Sauvegarde rapports si présents
+        if (document.getElementById('section-gains').style.display !== 'none') {
+            p.rapports.o = document.getElementById('rapO').value;
+            p.rapports.d = document.getElementById('rapD').value;
+            p.rapports.b4 = document.getElementById('rapB4').value;
+            p.rapports.b45 = document.getElementById('rapB45').value;
+            p.rapports.b3 = document.getElementById('rapB3').value;
+            const nb = (p.typePari === 'tierce') ? 3 : 5;
+            for(let i=1; i<=nb; i++) p.arrivee[i-1] = document.getElementById('a'+i).value;
+        }
+    }
+
+    function chargerProfil(nom) {
+        let p = profils[nom];
+        let html = `
+            <div class="container no-print">
+                <h2>1. Profil : ${nom}</h2>
+                <select id="typePari" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px;" onchange="ajusterInterfaceLocal()">
+                    <option value="quinte" ${p.typePari==='quinte'?'selected':''}>Quinté+</option>
+                    <option value="tierce" ${p.typePari==='tierce'?'selected':''}>Tiercé</option>
+                </select>
+                <div class="flexi-zone">
+                    <label>MISE :</label>
+                    <select id="modeFlexi" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ffb74d;">
+                        <option value="1" ${p.modeFlexi==='1'?'selected':''}>100%</option>
+                        <option value="0.5" ${p.modeFlexi==='0.5'?'selected':''}>50%</option>
+                        <option value="0.25" id="optFlexi25" ${p.modeFlexi==='0.25'?'selected':''}>25%</option>
+                    </select>
+                </div>
+                <div class="grid-saisie">
+                    ${p.chevaux.map((c, i) => `
+                        <div class="horse-card">
+                            <input type="number" id="h${i+1}" value="${c}">
+                            <label class="base-label"><input type="checkbox" id="b${i+1}" ${p.bases[i]?'checked':''}> BASE</label>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="btn-group">
+                    <button onclick="genererLocal()">GÉNÉRER</button>
+                    <button class="btn-reset" onclick="razLocal('saisie')">RAZ</button>
+                </div>
+            </div>
+
+            <div class="container" id="section-gains" style="display:${p.tickets.length>0?'block':'none'};">
+                <h2>2. Rapports & Gains</h2>
+                <div class="import-area no-print">
+                    <textarea id="rawText" rows="2" style="width:100%;" placeholder="Colle Zeturf ici..."></textarea>
+                    <button onclick="extraireLocal()" style="background:#1565c0; padding:8px; margin-top:5px;">EXTRAIRE</button>
+                    <div id="listeExtraits" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:5px;"></div>
+                </div>
+                <div class="arrivee-row" id="arriveeContainer"></div>
+                <div class="input-group">
+                    <input type="number" id="rapO" placeholder="Ordre" value="${p.rapports.o}" onfocus="targetInput=this">
+                    <input type="number" id="rapD" placeholder="Désordre" value="${p.rapports.d}" onfocus="targetInput=this">
+                </div>
+                <div id="bonusInputs">
+                    <div class="input-group">
+                        <input type="number" id="rapB4" placeholder="Bonus 4" value="${p.rapports.b4}" onfocus="targetInput=this">
+                        <input type="number" id="rapB45" placeholder="Bonus 4/5" value="${p.rapports.b45}" onfocus="targetInput=this">
+                    </div>
+                    <input type="number" id="rapB3" placeholder="Bonus 3" value="${p.rapports.b3}" style="width:100%; padding:12px; margin-bottom:8px; border:1px solid #ccc; border-radius:8px;" onfocus="targetInput=this">
+                </div>
+                <div class="btn-group">
+                    <button onclick="calculerLocal()">VÉRIFIER</button>
+                    <button class="btn-reset" onclick="razLocal('rapports')">RAZ</button>
+                </div>
+            </div>
+            <div id="displayTickets"></div>
+            <div id="bilanFinal"></div>
+            <div class="no-print" id="saveZone" style="display:${p.tickets.length>0?'block':'none'}; text-align:center; padding:20px;">
+                <button onclick="window.print()" style="background:#455a64; width:80%;">💾 PDF</button>
+            </div>
+        `;
+        document.getElementById('appBody').innerHTML = html;
+        ajusterInterfaceLocal(true);
+        if(p.tickets.length > 0) afficherLocal();
+    }
+
+    function ajusterInterfaceLocal(isFirstLoad = false) {
+        const type = document.getElementById('typePari').value;
+        const cont = document.getElementById('arriveeContainer');
+        const opt25 = document.getElementById('optFlexi25');
+        const p = profils[profilActif];
+        
+        cont.innerHTML = "";
+        const nb = (type === 'tierce') ? 3 : 5;
+        for(let i=1; i<=nb; i++) {
+            cont.innerHTML += `<input type="number" id="a${i}" class="arrivee-input" value="${isFirstLoad ? p.arrivee[i-1]||'' : ''}">`;
+        }
+        document.getElementById('bonusInputs').style.display = (type === 'tierce') ? "none" : "block";
+        opt25.style.display = (type === 'tierce') ? "none" : "block";
+    }
+
+    function genererLocal() {
+        sauvegarderEtatActuel();
+        let p = profils[profilActif], bases = [], assoc = [];
+        p.chevaux.forEach((val, i) => {
+            if(val) {
+                if(p.bases[i]) bases.push(parseInt(val));
+                else assoc.push(parseInt(val));
+            }
+        });
+
+        if(p.typePari === 'quinte' && bases.length !== 2) { alert("2 bases requises"); return; }
+        if(p.typePari === 'tierce' && bases.length !== 1) { alert("1 base requise"); return; }
+
+        p.tickets = []; p.miseTotal = 0;
+        let flexi = parseFloat(p.modeFlexi);
+
+        if(p.typePari === 'tierce') {
+            for(let i=0; i < assoc.length - 1; i++) {
+                let r = assoc.slice(i+1);
+                p.tickets.push({ nums: [...bases, assoc[i], ...r], m: r.length * flexi, lbl: `${bases[0]} | ${assoc[i]} | ${r.join('-')}` });
+                p.miseTotal += r.length * flexi;
+            }
+        } else {
+            for(let i=0; i < assoc.length - 2; i++) {
+                for(let j=i+1; j < assoc.length - 1; j++) {
+                    let r = assoc.slice(j+1);
+                    p.tickets.push({ nums: [...bases, assoc[i], assoc[j], ...r], m: (r.length * 2) * flexi, lbl: `${bases.join('-')} | ${assoc[i]}-${assoc[j]} | ${r.join('-')}` });
+                    p.miseTotal += (r.length * 2) * flexi;
+                }
+            }
+        }
+        document.getElementById('section-gains').style.display = 'block';
+        document.getElementById('saveZone').style.display = 'block';
+        afficherLocal();
+    }
+
+    function calculerLocal() {
+        sauvegarderEtatActuel();
+        let p = profils[profilActif], totalG = 0;
+        let flexi = parseFloat(p.modeFlexi);
+        let arr = p.arrivee.filter(v => v !== "").map(v => parseInt(v));
+        let nb = (p.typePari === 'tierce') ? 3 : 5;
+
+        p.tickets.forEach((t, i) => {
+            let horseMatch = arr.filter(n => t.nums.includes(n)).length;
+            let g = 0, stl = "ticket", msg = "";
+            let isOrdre = true;
+            for(let k=0; k<nb; k++) if(t.nums[k] !== arr[k]) { isOrdre = false; break; }
+
+            if(p.typePari === 'tierce' && horseMatch === 3) {
+                g = (isOrdre ? p.rapports.o : p.rapports.d) * flexi;
+                stl = isOrdre ? "ticket ordre" : "ticket gagnant";
+                msg = isOrdre ? "ORDRE" : "DÉSORDRE";
+            } else if(p.typePari === 'quinte') {
+                if(horseMatch === 5) {
+                    g = (isOrdre ? p.rapports.o : p.rapports.d) * flexi;
+                    stl = isOrdre ? "ticket ordre" : "ticket gagnant";
+                    msg = isOrdre ? "ORDRE" : "DÉSORDRE";
+                } else if(horseMatch === 4) {
+                    let foundIn4 = arr.slice(0, 4).filter(n => t.nums.includes(n)).length;
+                    g = (foundIn4 === 4 ? p.rapports.b4 : p.rapports.b45) * flexi;
+                    stl = "ticket bonus"; msg = foundIn4 === 4 ? "BONUS 4" : "BONUS 4/5";
+                } else if(horseMatch === 3 && arr.slice(0, 3).filter(n => t.nums.includes(n)).length === 3) {
+                    g = p.rapports.b3 * flexi; stl = "ticket bonus"; msg = "BONUS 3";
+                }
+            }
+            totalG += g;
+            let div = document.getElementById('tk-'+i);
+            div.className = stl;
+            div.innerHTML = g > 0 ? `<strong>TK ${i+1}</strong>: ${t.lbl}<br><b style="color:#e65100">💰 ${msg} : ${g.toFixed(2)}€</b>` 
+                                  : `<strong>TK ${i+1}</strong>: ${t.lbl}<br><span style="color:#888">Coût : ${t.m.toFixed(2)}€</span>`;
+        });
+
+        let net = totalG - p.miseTotal;
+        document.getElementById('bilanFinal').innerHTML = `
+            <div class="summary-box" style="background:${net>=0?'#2e7d32':'#d32f2f'}">
+                ${profilActif.toUpperCase()} | NET : ${net.toFixed(2)}€ (Gains: ${totalG.toFixed(2)}€)
+            </div>`;
+    }
+
+    function afficherLocal() {
+        let p = profils[profilActif];
+        let h = "<h2>Tickets de " + profilActif + "</h2>";
+        p.tickets.forEach((t, i) => {
+            h += `<div class="ticket" id="tk-${i}"><strong>TK ${i+1}</strong>: ${t.lbl}<br><span style="color:#888">Coût : ${t.m.toFixed(2)}€</span></div>`;
+        });
+        document.getElementById('displayTickets').innerHTML = h;
+    }
+
+    function razLocal(type) {
+        if(confirm("Confirmer la remise à zéro ?")) {
+            if(type === 'saisie') {
+                profils[profilActif].chevaux = Array(8).fill("");
+                profils[profilActif].bases = Array(8).fill(false);
+                profils[profilActif].tickets = [];
+                chargerProfil(profilActif);
+            } else {
+                profils[profilActif].rapports = { o: "", d: "", b4: "", b45: "", b3: "" };
+                profils[profilActif].arrivee = Array(5).fill("");
+                chargerProfil(profilActif);
+            }
+        }
+    }
+
+    function extraireLocal() {
+        let txt = document.getElementById('rawText').value;
+        let ms = txt.match(/(\d+[\.,]\d+)/g);
+        let div = document.getElementById('listeExtraits'); div.innerHTML = "";
+        if(ms) ms.forEach(val => {
+            let b = document.createElement('button'); b.innerText = val+"€";
+            b.style = "width:auto; padding:6px 12px; background:#1565c0; border:none; color:white; border-radius:4px;";
+            b.onclick = () => { if(targetInput) targetInput.value = val.replace(',','.'); };
+            div.appendChild(b);
+        });
+    }
+
+    // Créer un premier profil par défaut
+    ajouterProfil();
+</script>
+</body>
+</html>
