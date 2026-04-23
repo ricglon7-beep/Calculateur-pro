@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Turf Expert v4.2</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 10px; margin: 0; color: #333; }
+        .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .bk-display { background: #1a237e; color: white; padding: 10px 20px; border-radius: 30px; font-weight: bold; cursor: pointer; border: none; }
+        .tab-bar { display: flex; gap: 5px; overflow-x: auto; padding: 10px 0; margin-bottom: 10px; }
+        .tab { background: #cfd8dc; padding: 12px 18px; border-radius: 8px; cursor: pointer; white-space: nowrap; font-weight: bold; }
+        .tab.active { background: #d32f2f; color: white; }
+        h2 { color: #d32f2f; text-align: center; font-size: 1em; border-bottom: 1px solid #eee; padding-bottom: 8px; text-transform: uppercase; margin-top: 0; }
+        h3 { color: #1a237e; font-size: 0.9em; margin: 12px 0 6px 0; text-transform: uppercase; }
+        .grid-rapports { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .grid-rapports input, .large-input { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 8px; font-size: 1.1em; box-sizing: border-box; }
+        .arrivee-row { display: flex; justify-content: center; gap: 8px; margin: 15px 0; }
+        .arrivee-input { width: 50px; height: 50px; border: 2px solid #ef6c00; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.3em; color: #ef6c00; }
+        button { width: 100%; padding: 16px; background: #2e7d32; color: white; border: none; border-radius: 10px; font-size: 1em; font-weight: bold; cursor: pointer; margin-bottom: 8px; }
+        .btn-reset { background: #757575; font-size: 0.85em; padding: 12px; }
+        .btn-danger { background: #c62828; margin-top: 20px; font-size: 0.8em; padding: 10px; }
+        .btn-bk { background: #ff6f00; font-size: 1.1em; border: 2px solid #e65100; }
+        .btn-export { background: #6a1b9a; font-size: 0.9em; padding: 10px; }
+        .ticket { background: #f9f9f9; border-left: 5px solid #bdc3c7; padding: 12px; margin-bottom: 8px; border-radius: 5px; font-family: monospace; }
+        .ticket-gagnant { background: #e8f5e9; border: 2px solid #2e7d32; border-left-width: 10px; color: #1b5e20; font-weight: bold; }
+        .ticket-bonus { background: #fff8e1; border: 2px solid #ff8f00; border-left-width: 10px; color: #e65100; font-weight: bold; }
+        .summary-box { color: white; padding: 15px; border-radius: 10px; text-align: center; margin-top: 15px; font-weight: bold; font-size: 1em; line-height: 1.4; }
+        #statsSection, #editorBK { display: none; }
+        .list-item-bk { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; font-size: 0.85em; }
+
+        /* Stats cards */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+        .stat-card { background: #f5f5f5; border-radius: 10px; padding: 10px; text-align: center; }
+        .stat-card .val { font-size: 1.3em; font-weight: bold; }
+        .stat-card .lbl { font-size: 0.72em; color: #666; text-transform: uppercase; margin-top: 2px; }
+        .stat-card.pos { background: #e8f5e9; } .stat-card.pos .val { color: #2e7d32; }
+        .stat-card.neg { background: #ffebee; } .stat-card.neg .val { color: #c62828; }
+        .stat-card.neu { background: #e3f2fd; } .stat-card.neu .val { color: #1565c0; }
+
+        /* Tableau période */
+        .periode-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+        .periode-tab { flex: 1; padding: 8px; background: #e0e0e0; border: none; border-radius: 6px; font-size: 0.8em; font-weight: bold; cursor: pointer; color: #333; }
+        .periode-tab.active { background: #1a237e; color: white; }
+        table.bk-table { width: 100%; border-collapse: collapse; font-size: 0.78em; margin-top: 8px; }
+        table.bk-table th { background: #1a237e; color: white; padding: 6px 4px; text-align: center; }
+        table.bk-table td { padding: 5px 4px; text-align: center; border-bottom: 1px solid #eee; }
+        table.bk-table tr:nth-child(even) { background: #f5f5f5; }
+        .td-pos { color: #2e7d32; font-weight: bold; }
+        .td-neg { color: #c62828; font-weight: bold; }
+
+        /* Import Zeturf amélioré */
+        .import-area { background: #e3f2fd; border: 2px dashed #1976d2; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+        .rap-btn { display: inline-block; padding: 7px 10px; background: #1565c0; color: white; border: none; margin: 2px; border-radius: 6px; font-size: 0.85em; cursor: pointer; width: auto; }
+        .rap-btn.selected { background: #e65100; border: 2px solid #bf360c; }
+        .rap-label { font-size: 0.75em; color: #1565c0; font-weight: bold; display: block; margin-bottom: 4px; }
+
+        /* Série indicateur */
+        .serie-box { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border-radius: 8px; margin: 6px 0; font-weight: bold; font-size: 0.9em; }
+        .serie-win { background: #e8f5e9; color: #2e7d32; }
+        .serie-lose { background: #ffebee; color: #c62828; }
+        .serie-neutral { background: #f5f5f5; color: #555; }
+
+        /* Analyse rapports */
+        .rap-analyse { background: #f3e5f5; border-radius: 10px; padding: 12px; margin-top: 10px; }
+        .rap-analyse h3 { color: #6a1b9a; margin-top: 0; }
+        table.rap-table { width: 100%; border-collapse: collapse; font-size: 0.78em; }
+        table.rap-table th { background: #6a1b9a; color: white; padding: 6px 4px; text-align: center; }
+        table.rap-table td { padding: 5px 4px; text-align: center; border-bottom: 1px solid #e1bee7; }
+        table.rap-table tr:nth-child(even) { background: #fce4ec; }
+        .badge-rentable { background: #e8f5e9; color: #2e7d32; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85em; }
+        .badge-neutre { background: #fff8e1; color: #e65100; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85em; }
+        .badge-perd { background: #ffebee; color: #c62828; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85em; }
+
+        /* Badges discipline */
+        .disc-trot { background: #e3f2fd; color: #1565c0; border-radius: 4px; padding: 2px 7px; font-weight: bold; font-size: 0.82em; }
+        .disc-plat { background: #e8f5e9; color: #2e7d32; border-radius: 4px; padding: 2px 7px; font-weight: bold; font-size: 0.82em; }
+        .disc-obstacle { background: #fff3e0; color: #e65100; border-radius: 4px; padding: 2px 7px; font-weight: bold; font-size: 0.82em; }
+        .disc-selector { display: flex; gap: 8px; margin: 10px 0; }
+        .disc-btn { flex: 1; padding: 12px 6px; border: 2px solid #ccc; background: white; border-radius: 10px; font-size: 0.9em; font-weight: bold; cursor: pointer; color: #555; transition: all 0.2s; }
+        .disc-btn.active-trot { border-color: #1565c0; background: #e3f2fd; color: #1565c0; }
+        .disc-btn.active-plat { border-color: #2e7d32; background: #e8f5e9; color: #2e7d32; }
+        .disc-btn.active-obstacle { border-color: #e65100; background: #fff3e0; color: #e65100; }
+        table.disc-table { width: 100%; border-collapse: collapse; font-size: 0.78em; margin-top: 8px; }
+        table.disc-table th { background: #37474f; color: white; padding: 6px 4px; text-align: center; }
+        table.disc-table td { padding: 5px 4px; text-align: center; border-bottom: 1px solid #eceff1; }
+        table.disc-table tr:nth-child(even) { background: #f5f5f5; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a237e; color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.85em; font-weight: bold; opacity: 0; transition: opacity 0.4s; z-index: 9999; pointer-events: none; }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<div class="top-nav">
+    <button class="bk-display" onclick="toggleStats()">💰 BK: <span id="bkValue">0.00</span>€</button>
+    <button onclick="ajouterProfil()" style="width:auto; padding:10px 15px; background:#1976d2; color:white; border-radius:8px; border:none; font-weight:bold;">+ PROFIL</button>
+</div>
+
+<div class="tab-bar" id="tabBar"></div>
+
+<div id="statsSection" class="container">
+    <h2>📊 Bankroll & Statistiques</h2>
+
+    <!-- Graphe évolution -->
+    <div style="height: 180px; margin-bottom: 10px;"><canvas id="evolutionChart"></canvas></div>
+
+    <!-- Cartes ROI -->
+    <div class="stats-grid" id="statsCards"></div>
+
+    <!-- Série en cours -->
+    <div id="serieBox" class="serie-neutral serie-box">—</div>
+
+    <!-- Onglets période -->
+    <div style="margin-top:12px;">
+        <h3>📅 Tableaux par période</h3>
+        <div class="periode-tabs">
+            <button class="periode-tab active" onclick="switchPeriode('semaine', this)">Semaine</button>
+            <button class="periode-tab" onclick="switchPeriode('mois', this)">Mois</button>
+        </div>
+        <div id="tableauPeriode"></div>
+    </div>
+
+    <!-- Historique éditable -->
+    <button onclick="document.getElementById('editorBK').style.display='block'" style="background:#0288d1; margin-top:12px;">🛠️ MODIFIER L'HISTORIQUE</button>
+    <div id="editorBK" style="background:#f1f1f1; padding:10px; border-radius:8px; margin-top:10px;">
+        <div id="historiqueListe"></div>
+        <button onclick="document.getElementById('editorBK').style.display='none'" class="btn-reset" style="margin-top:10px;">Fermer</button>
+    </div>
+    <button onclick="definirCapital()" style="background:#455a64; margin-top:10px;">Modifier Capital Départ</button>
+    <button class="btn-reset" onclick="resetBK()">RAZ COMPLÈTE BK</button>
+
+    <!-- ANALYSE RAPPORTS -->
+    <div class="rap-analyse" id="rapAnalyseSection" style="display:none;">
+        <h3>📈 Analyse des rapports encaissés</h3>
+        <div id="rapAnalyseContenu"></div>
+    </div>
+
+    <!-- ANALYSE PAR DISCIPLINE -->
+    <div class="rap-analyse" id="discAnalyseSection" style="display:none; background:#eceff1; margin-top:10px;">
+        <h3 style="color:#37474f;">🏇 Performance par discipline</h3>
+        <div id="discAnalyseContenu"></div>
+    </div>
+</div>
+
+<div class="toast" id="toastMsg"></div>
+
+<div id="appBody"></div>
+
+<script>
+    let profils = {};
+    let profilActif = "";
+    let targetInput = null;
+    let targetRapportKey = null;
+    let evolutionChart = null;
+    let periodeMode = 'semaine';
+
+    // BK vide par défaut (template pour chaque profil)
+    function newBK() { return { capital: 0, solde: 0, jours: [], netTierce: 0, netQuinte: 0 }; }
+    // Accesseur : BK du profil actif
+    function bk() { return profils[profilActif].bankroll; }
+
+    // ─── PERSISTANCE localStorage ────────────────────────────────────
+    const LS_PROFILS = 'turfExpert_profils';
+    const LS_ACTIF   = 'turfExpert_profilActif';
+
+    function sauvegarderLS() {
+        try {
+            localStorage.setItem(LS_PROFILS, JSON.stringify(profils));
+            localStorage.setItem(LS_ACTIF, profilActif);
+        } catch(e) { console.warn('localStorage indisponible', e); }
+    }
+
+    function chargerLS() {
+        try {
+            const pr = localStorage.getItem(LS_PROFILS);
+            const ac = localStorage.getItem(LS_ACTIF);
+            if (pr) {
+                profils = JSON.parse(pr);
+                // Migration : anciens profils sans bankroll intégrée
+                Object.keys(profils).forEach(nom => {
+                    if (!profils[nom].bankroll) profils[nom].bankroll = newBK();
+                });
+            }
+            if (ac && profils[ac]) profilActif = ac;
+        } catch(e) { console.warn('Erreur chargement localStorage', e); }
+    }
+
+    function updateBkDisplay() {
+        const solde = profilActif && profils[profilActif] ? profils[profilActif].bankroll.solde : 0;
+        document.getElementById('bkValue').innerText = solde.toFixed(2);
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toastMsg');
+        t.innerText = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // ─── TOGGLE STATS ────────────────────────────────────────────────
+    function toggleStats() {
+        const s = document.getElementById('statsSection'), a = document.getElementById('appBody');
+        if (s.style.display === 'block') { s.style.display = 'none'; a.style.display = 'block'; }
+        else { s.style.display = 'block'; a.style.display = 'none'; renderStats(); }
+    }
+
+    // ─── PROFIL ───────────────────────────────────────────────────────
+    function ajouterProfil() {
+        let nom = prompt("Nom du profil :");
+        if (!nom) return;
+        profils[nom] = {
+            typePari: 'quinte', flexi: 1,
+            chevaux: Array(8).fill(""), bases: Array(8).fill(false),
+            arrivee: Array(5).fill(""),
+            rapports: { o: "", d: "", b4: "", b45: "", b3: "" },
+            tickets: [], miseTotal: 0,
+            bankroll: newBK()
+        };
+        selectProfil(nom);
+    }
+
+    // ─── CHARGEMENT INTERFACE PROFIL ─────────────────────────────────
+    function chargerProfil(nom) {
+        let p = profils[nom];
+        let isTierce = p.typePari === 'tierce';
+        let html = `
+        <div class="container">
+            <h2>1. Saisie : ${nom}</h2>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <select id="typePari" style="flex:1.5; padding:12px; border-radius:8px;" onchange="ajusterInterfaceLocal()">
+                    <option value="quinte" ${!isTierce ? 'selected' : ''}>Quinté+</option>
+                    <option value="tierce" ${isTierce ? 'selected' : ''}>Tiercé</option>
+                </select>
+                <select id="flexiSelect" style="flex:1; padding:12px; border-radius:8px; background:#e8f5e9; font-weight:bold;">
+                    <option value="1" ${p.flexi == 1 ? 'selected' : ''}>100%</option>
+                    <option value="0.5" ${p.flexi == 0.5 ? 'selected' : ''}>50%</option>
+                    <option value="0.25" ${p.flexi == 0.25 ? 'selected' : ''}>25%</option>
+                </select>
+            </div>
+            <div class="grid-saisie" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
+                ${p.chevaux.map((c, i) => `
+                <div class="horse-card" style="background:#fff; border:1px solid #ddd; padding:5px; border-radius:8px; text-align:center;">
+                    <input type="number" id="h${i + 1}" value="${c}" style="width:100%; text-align:center; padding:8px 0; border:1px solid #ccc; border-radius:4px;">
+                    <label style="font-size:0.75em; color:#d32f2f; font-weight:bold; display:block; margin-top:5px;"><input type="checkbox" id="b${i + 1}" ${p.bases[i] ? 'checked' : ''}> BASE</label>
+                </div>`).join('')}
+            </div>
+            <button onclick="genererLocal()" style="margin-top:15px;">GÉNÉRER LES TICKETS</button>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <button class="btn-reset" onclick="razLocal('saisie')">RAZ CHEVAUX</button>
+                <button class="btn-reset" onclick="razLocal('tickets')">RAZ TICKETS</button>
+            </div>
+        </div>
+
+        <div class="container" id="section-gains" style="display:${p.tickets.length > 0 ? 'block' : 'none'};">
+            <h2>2. Résultats & Rapports</h2>
+
+            <!-- IMPORT ZETURF AMÉLIORÉ -->
+            <div class="import-area">
+                <span class="rap-label">📋 Import Zeturf — coller le texte des rapports :</span>
+                <textarea id="rawText" rows="3" style="width:100%; padding:8px; box-sizing:border-box; border-radius:6px; border:1px solid #90caf9;" placeholder="Collez ici le texte Zeturf (rapports)..."></textarea>
+                <button onclick="extraireEtAffecter()" style="background:#1565c0; padding:10px; margin-top:6px;">🔍 EXTRAIRE & AFFECTER AUTO</button>
+                <div style="margin-top:8px;">
+                    <span class="rap-label">Ou cliquer sur un rapport extrait pour l'affecter manuellement :</span>
+                    <div style="margin-bottom:4px; display:flex; flex-wrap:wrap; gap:4px;" id="cibleBtns">
+                        <button class="rap-btn" id="cible-o" onclick="setCible('o', this)">→ Ordre</button>
+                        <button class="rap-btn" id="cible-d" onclick="setCible('d', this)">→ Désordre</button>
+                        <button class="rap-btn" id="cible-b4" onclick="setCible('b4', this)">→ B.4</button>
+                        <button class="rap-btn" id="cible-b45" onclick="setCible('b45', this)">→ B.4/5</button>
+                        <button class="rap-btn" id="cible-b3" onclick="setCible('b3', this)" id="section-gains">→ B.3</button>
+                    </div>
+                    <div id="listeExtraits" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;"></div>
+                </div>
+            </div>
+
+            <!-- ARRIVEE -->
+            <div class="arrivee-row" id="arriveeContainer"></div>
+
+            <!-- RAPPORTS MANUELS avec labels clairs -->
+            <div class="grid-rapports">
+                <div>
+                    <span class="rap-label">Ordre</span>
+                    <input type="number" id="rapO" placeholder="0.00" value="${p.rapports.o}" onfocus="targetInput=this; setCible('o', document.getElementById('cible-o'))">
+                </div>
+                <div>
+                    <span class="rap-label">Désordre</span>
+                    <input type="number" id="rapD" placeholder="0.00" value="${p.rapports.d}" onfocus="targetInput=this; setCible('d', document.getElementById('cible-d'))">
+                </div>
+            </div>
+            <div id="bonusSection">
+                <div class="grid-rapports">
+                    <div>
+                        <span class="rap-label">Bonus 4 (4 sur 5)</span>
+                        <input type="number" id="rapB4" placeholder="0.00" value="${p.rapports.b4}" onfocus="targetInput=this; setCible('b4', document.getElementById('cible-b4'))">
+                    </div>
+                    <div>
+                        <span class="rap-label">Bonus 4/5 (4 premiers)</span>
+                        <input type="number" id="rapB45" placeholder="0.00" value="${p.rapports.b45}" onfocus="targetInput=this; setCible('b45', document.getElementById('cible-b45'))">
+                    </div>
+                </div>
+                <span class="rap-label">Bonus 3</span>
+                <input type="number" id="rapB3" class="large-input" placeholder="0.00" value="${p.rapports.b3}" onfocus="targetInput=this; setCible('b3', document.getElementById('cible-b3'))">
+            </div>
+
+            <button onclick="calculerLocal()" style="margin-top:15px;">✅ VÉRIFIER MES GAINS</button>
+            <button class="btn-reset" onclick="razLocal('rapports')">RAZ GAINS / RAPPORTS</button>
+            <input type="hidden" id="hiddenNetValue" value="0">
+            <button id="btnValidationBK" class="btn-bk" style="display:none; margin-top:10px;" onclick="validerResultatBK()">💾 ENVOYER À LA BK</button>
+        </div>
+
+        <div id="displayTickets"></div>
+        <div id="bilanFinal"></div>
+
+        <!-- Export tickets -->
+        <div id="exportZone" style="display:none;" class="container">
+            <h2>📋 Export Tickets</h2>
+            <textarea id="exportText" rows="8" style="width:100%; font-family:monospace; font-size:0.8em; box-sizing:border-box; padding:8px; border-radius:6px; border:1px solid #ccc;"></textarea>
+            <button class="btn-export" onclick="copierExport()">📋 COPIER</button>
+        </div>
+
+        <button class="btn-danger" onclick="supprimerProfilActuel()">🗑️ SUPPRIMER CE PROFIL</button>
+        `;
+        document.getElementById('appBody').innerHTML = html;
+        document.getElementById('appBody').dataset.profil = nom;
+        ajusterInterfaceLocal(true);
+        if (p.tickets.length > 0) afficherLocal();
+    }
+
+    // ─── CIBLE IMPORT MANUEL ─────────────────────────────────────────
+    function setCible(key, btn) {
+        targetRapportKey = key;
+        // Reset visual
+        document.querySelectorAll('.rap-btn').forEach(b => b.classList.remove('selected'));
+        if (btn) btn.classList.add('selected');
+        // Sync targetInput
+        const map = { o: 'rapO', d: 'rapD', b4: 'rapB4', b45: 'rapB45', b3: 'rapB3' };
+        const el = document.getElementById(map[key]);
+        if (el) targetInput = el;
+    }
+
+    // ─── EXTRACTION + AFFECTATION AUTO ZETURF ────────────────────────
+    function extraireEtAffecter() {
+        const txt = document.getElementById('rawText').value;
+        const nums = txt.match(/\d+[\.,]\d+/g);
+        const div = document.getElementById('listeExtraits');
+        div.innerHTML = "";
+        if (!nums) return;
+
+        // Tentative affectation automatique par mots-clés dans le texte brut
+        const txtLow = txt.toLowerCase();
+        const mapAuto = [
+            { keys: ['ordre', 'ord.'], field: 'rapO', label: 'Ordre' },
+            { keys: ['désordre', 'desordre', 'dés.', 'des.'], field: 'rapD', label: 'Désordre' },
+            { keys: ['bonus 4 sur 4', 'b4/4', 'b. 4/4', '4 sur 4'], field: 'rapB4', label: 'B.4' },
+            { keys: ['bonus 4 sur 5', 'b4/5', 'b. 4/5', '4 sur 5'], field: 'rapB45', label: 'B.4/5' },
+            { keys: ['bonus 3', 'b3', 'b. 3', '3 sur 5'], field: 'rapB3', label: 'B.3' },
+        ];
+
+        let affectes = {};
+        // On tente ligne par ligne
+        txt.split('\n').forEach(line => {
+            const lLow = line.toLowerCase();
+            const val = (line.match(/\d+[\.,]\d+/) || [])[0];
+            if (!val) return;
+            mapAuto.forEach(m => {
+                if (m.keys.some(k => lLow.includes(k)) && !affectes[m.field]) {
+                    const el = document.getElementById(m.field);
+                    if (el) { el.value = val.replace(',', '.'); affectes[m.field] = true; }
+                }
+            });
+        });
+
+        // Afficher tous les montants extraits comme boutons cliquables
+        nums.forEach(val => {
+            let b = document.createElement('button');
+            b.innerText = val + "€";
+            b.className = 'rap-btn';
+            b.onclick = () => {
+                if (targetInput) { targetInput.value = val.replace(',', '.'); }
+            };
+            div.appendChild(b);
+        });
+
+        // Feedback
+        const nbAuto = Object.keys(affectes).length;
+        if (nbAuto > 0) {
+            let msg = document.createElement('div');
+            msg.style = "font-size:0.78em; color:#2e7d32; font-weight:bold; margin-top:4px;";
+            msg.innerText = `✅ ${nbAuto} rapport(s) affecté(s) automatiquement`;
+            div.appendChild(msg);
+        }
+    }
+
+    // ─── RAZ ─────────────────────────────────────────────────────────
+    function razLocal(type) {
+        if (confirm("Confirmer l'effacement ?")) {
+            const p = profils[profilActif];
+            if (type === 'saisie') {
+                p.chevaux = Array(8).fill("");
+                p.bases = Array(8).fill(false);
+                p.tickets = [];
+                p.miseTotal = 0;
+            } else if (type === 'tickets') {
+                p.tickets = [];
+                p.miseTotal = 0;
+            } else if (type === 'rapports') {
+                p.rapports = { o: "", d: "", b4: "", b45: "", b3: "" };
+                p.arrivee = Array(5).fill("");
+            }
+            // Sauvegarder immédiatement AVANT de reconstruire le DOM
+            // pour éviter que chargerProfil/sauvegarderEtatActuel ne relise un DOM vide
+            sauvegarderLS();
+            chargerProfil(profilActif);
+        }
+    }
+
+    // ─── GÉNÉRER TICKETS ─────────────────────────────────────────────
+    function genererLocal() {
+        sauvegarderEtatActuel();
+        let p = profils[profilActif], bases = [], assoc = [];
+        p.chevaux.forEach((val, i) => { if (val) { if (p.bases[i]) bases.push(parseInt(val)); else assoc.push(parseInt(val)); } });
+        p.tickets = []; p.miseTotal = 0;
+        let flex = parseFloat(p.flexi);
+
+        if (p.typePari === 'quinte') {
+            for (let i = 0; i < assoc.length - 2; i++) {
+                for (let j = i + 1; j < assoc.length - 1; j++) {
+                    let r = assoc.slice(j + 1);
+                    let cout = r.length * 2 * flex;
+                    p.tickets.push({ nums: [...bases, assoc[i], assoc[j], ...r], m: cout, lbl: `${bases.join('-')} | ${assoc[i]}-${assoc[j]} | ${r.join('-')}` });
+                    p.miseTotal += cout;
+                }
+            }
+        } else {
+            for (let i = 0; i < assoc.length - 1; i++) {
+                let r = assoc.slice(i + 1);
+                let cout = r.length * flex;
+                p.tickets.push({ nums: [...bases, assoc[i], ...r], m: cout, lbl: `${bases[0]} | ${assoc[i]} | ${r.join('-')}` });
+                p.miseTotal += cout;
+            }
+        }
+        chargerProfil(profilActif);
+    }
+
+    // ─── CALCULER GAINS ──────────────────────────────────────────────
+    function calculerLocal() {
+        sauvegarderEtatActuel();
+        let p = profils[profilActif], totalG = 0, nbArr = (p.typePari === 'tierce') ? 3 : 5;
+        let arr = p.arrivee.filter(v => v !== "").map(v => parseInt(v));
+        let flex = parseFloat(p.flexi);
+        let gainTypes = {};
+        // Reconstruire les bases depuis le profil
+        let bases = p.chevaux.filter((v, i) => v !== "" && p.bases[i]).map(v => parseInt(v));
+
+        p.tickets.forEach((t, i) => {
+            let div = document.getElementById('tk-' + i), g = 0, msg = "", stl = "ticket";
+            let matchTotal = arr.filter(n => t.nums.includes(n)).length;
+            let matchTop4 = arr.slice(0, 4).filter(n => t.nums.includes(n)).length;
+            let matchTop3 = arr.slice(0, 3).filter(n => t.nums.includes(n)).length;
+            let typeGainTk = null;
+
+            // Les bases doivent TOUTES être dans l'arrivée, sinon aucun gain possible
+            const basesOk = bases.every(b => arr.includes(b));
+
+            if (basesOk && matchTotal === nbArr) {
+                let isOrdre = true;
+                let chevauxArriveeDansTicket = t.nums.filter(n => arr.includes(n));
+                for (let k = 0; k < nbArr; k++) if (chevauxArriveeDansTicket[k] !== arr[k]) { isOrdre = false; break; }
+                g = (isOrdre ? p.rapports.o : p.rapports.d) * flex;
+                msg = isOrdre ? "ORDRE" : "DÉSORDRE";
+                typeGainTk = isOrdre ? 'ordre' : 'desordre';
+                stl = "ticket ticket-gagnant";
+            } else if (p.typePari === 'quinte') {
+                // B4/5 : les 4 premiers de l'arrivée dans le ticket (bases requises)
+                if (basesOk && matchTop4 === 4) { g = p.rapports.b45 * flex; msg = "BONUS 4/5"; typeGainTk = 'bonus45'; stl = "ticket ticket-bonus"; }
+                // B4 (e-bonus) : 4 chevaux quelconques parmi les 5 — bases NON requises
+                else if (matchTotal >= 4) { g = p.rapports.b4 * flex; msg = "BONUS 4"; typeGainTk = 'bonus4'; stl = "ticket ticket-bonus"; }
+                // B3 : les 3 premiers de l'arrivée dans le ticket (bases requises)
+                else if (basesOk && matchTop3 === 3) { g = p.rapports.b3 * flex; msg = "BONUS 3"; typeGainTk = 'bonus3'; stl = "ticket ticket-bonus"; }
+            }
+            if (typeGainTk && g > 0) gainTypes[typeGainTk] = (gainTypes[typeGainTk] || 0) + parseFloat(g);
+            totalG += (parseFloat(g) || 0);
+            div.className = stl;
+            const btnSuppr = `<button onclick="supprimerTicket(${i})" style="position:absolute;top:6px;right:6px;width:auto;padding:3px 8px;background:#c62828;font-size:0.75em;margin:0;border-radius:4px;">✕</button>`;
+            div.style.position = 'relative';
+            div.innerHTML = (g > 0
+                ? `<strong>TK ${i + 1}</strong>: ${t.lbl}<br>💰 ${msg} (${(flex * 100)}%) : ${g.toFixed(2)}€`
+                : `<strong>TK ${i + 1}</strong>: ${t.lbl}<br><span style="color:#888">Coût : ${t.m.toFixed(2)}€</span>`)
+                + btnSuppr;
+        });
+
+        let net = totalG - p.miseTotal;
+        // Mémoriser le meilleur type de gain pour la BK
+        window._lastTypeGain = null; window._lastRapport = null;
+        const priorite = ['ordre','desordre','bonus4','bonus45','bonus3'];
+        for (const k of priorite) {
+            if (gainTypes[k] && gainTypes[k] > 0) { window._lastTypeGain = k; window._lastRapport = gainTypes[k]; break; }
+        }
+        if (!window._lastTypeGain) window._lastTypeGain = 'nul';
+        document.getElementById('hiddenNetValue').value = net;
+        document.getElementById('btnValidationBK').style.display = 'block';
+        document.getElementById('bilanFinal').innerHTML = `<div class="summary-box" style="background:${net >= 0 ? '#2e7d32' : '#d32f2f'}">Mise Totale : ${p.miseTotal.toFixed(2)}€<br>BÉNÉFICE NET : ${net.toFixed(2)}€</div>`;
+
+        // Générer export texte
+        genererExport(p, arr, net);
+    }
+
+    // ─── EXPORT TEXTE TICKETS ────────────────────────────────────────
+    function genererExport(p, arr, net) {
+        let lines = [`=== ${profilActif} — ${new Date().toLocaleDateString('fr-FR')} ===`];
+        lines.push(`Type : ${p.typePari === 'quinte' ? 'Quinté+' : 'Tiercé'} | Flexi : ${parseFloat(p.flexi)*100}%`);
+        lines.push(`Arrivée : ${arr.join('-')}`);
+        lines.push(`Mise totale : ${p.miseTotal.toFixed(2)}€`);
+        lines.push('');
+        p.tickets.forEach((t, i) => {
+            lines.push(`TK${i + 1}: ${t.lbl} (${t.m.toFixed(2)}€)`);
+        });
+        lines.push('');
+        lines.push(`NET : ${net >= 0 ? '+' : ''}${net.toFixed(2)}€`);
+        document.getElementById('exportText').value = lines.join('\n');
+        document.getElementById('exportZone').style.display = 'block';
+    }
+
+    function copierExport() {
+        const el = document.getElementById('exportText');
+        el.select(); document.execCommand('copy');
+        alert('Tickets copiés !');
+    }
+
+    // ─── VALIDER DANS BK ─────────────────────────────────────────────
+    function validerResultatBK() {
+        let net = parseFloat(document.getElementById('hiddenNetValue').value);
+        // Modal discipline
+        const modal = document.createElement('div');
+        modal.id = 'modalDisc';
+        modal.style = `position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10000;`;
+        modal.innerHTML = `
+            <div style="background:white;border-radius:16px;padding:20px;width:90%;max-width:340px;box-shadow:0 8px 30px rgba(0,0,0,0.3);">
+                <h3 style="margin:0 0 6px 0;color:#d32f2f;text-align:center;font-size:1em;">💾 ENVOYER À LA BK</h3>
+                <p style="font-size:0.85em;text-align:center;color:#555;margin:0 0 14px 0;">Quelle est la discipline de l'épreuve ?</p>
+                <div class="disc-selector">
+                    <button class="disc-btn" id="db-trot" onclick="selectDisc('trot')">🐎 Trot</button>
+                    <button class="disc-btn" id="db-plat" onclick="selectDisc('plat')">🏁 Plat</button>
+                    <button class="disc-btn" id="db-obstacle" onclick="selectDisc('obstacle')">🚧 Obstacle</button>
+                </div>
+                <div id="discDateZone" style="display:none;margin-top:10px;">
+                    <label style="font-size:0.8em;color:#555;font-weight:bold;">Date :</label>
+                    <input id="discDateInput" type="text" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box;font-size:1em;margin-top:4px;">
+                    <button onclick="confirmerBK()" style="margin-top:10px;background:#ff6f00;">✅ CONFIRMER</button>
+                </div>
+                <button onclick="document.getElementById('modalDisc').remove()" class="btn-reset" style="margin-top:6px;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+        // Pré-remplir date
+        const d = new Date();
+        setTimeout(() => {
+            const inp = document.getElementById('discDateInput');
+            if (inp) inp.value = String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+        }, 50);
+        window._bkNet = net;
+        window._bkDisc = null;
+    }
+
+    function selectDisc(disc) {
+        window._bkDisc = disc;
+        ['trot','plat','obstacle'].forEach(d => {
+            const b = document.getElementById('db-'+d);
+            if (b) b.className = 'disc-btn' + (d === disc ? ' active-'+d : '');
+        });
+        document.getElementById('discDateZone').style.display = 'block';
+    }
+
+    function confirmerBK() {
+        const jour = document.getElementById('discDateInput').value.trim();
+        const net = window._bkNet;
+        const disc = window._bkDisc;
+        if (!jour || !disc) return;
+        const typeGain = window._lastTypeGain || 'nul';
+        const rapport = window._lastRapport || null;
+        bk().jours.push({ date: jour, net: net, type: profils[profilActif].typePari, typeGain: typeGain, rapport: rapport, discipline: disc });
+        const modal = document.getElementById('modalDisc');
+        if (modal) modal.remove();
+        recalculerSolde();
+        sauvegarderLS();
+        showToast("💾 Enregistré dans la BK !");
+    }
+
+    // ─── REGROUPEMENT PAR JOUR ───────────────────────────────────────
+    // Agrège les entrées de même date en une journée unique (net = somme des paris)
+    function grouperParJour(entries) {
+        const map = {};
+        entries.forEach(j => {
+            if (!map[j.date]) map[j.date] = { date: j.date, net: 0, paris: [] };
+            map[j.date].net += j.net;
+            map[j.date].paris.push(j);
+        });
+        // Retourner dans l'ordre d'insertion (ordre chronologique des premières occurrences)
+        return Object.values(map);
+    }
+
+    // ─── RECALCUL SOLDE ──────────────────────────────────────────────
+    function recalculerSolde() {
+        const b = bk();
+        b.solde = b.capital; b.netTierce = 0; b.netQuinte = 0;
+        b.jours.forEach(j => {
+            b.solde += j.net;
+            if (j.type === 'tierce') b.netTierce += j.net; else b.netQuinte += j.net;
+        });
+        updateBkDisplay();
+        sauvegarderLS();
+    }
+
+    // ─── RENDER STATS ────────────────────────────────────────────────
+    function renderStats() {
+        const b = bk();
+        // Graphe — un point par JOUR (somme des paris du jour)
+        const joursGroupes = grouperParJour(b.jours);
+        let cumul = b.capital, points = [cumul], labels = ["Départ"];
+        joursGroupes.forEach(j => { cumul += j.net; points.push(cumul); labels.push(j.date); });
+        const ctx = document.getElementById('evolutionChart').getContext('2d');
+        if (evolutionChart) evolutionChart.destroy();
+        evolutionChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Solde (€)', data: points,
+                    borderColor: '#1a237e', backgroundColor: 'rgba(26,35,126,0.1)',
+                    fill: true, tension: 0.2, pointRadius: 3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        // Métriques sur ENTRÉES individuelles (quinté/tiercé restent séparés)
+        const entrees = b.jours;
+        const totalNet = entrees.reduce((s, j) => s + j.net, 0);
+        const roiGlobal = b.capital > 0 ? ((totalNet / b.capital) * 100).toFixed(1) : '—';
+        const netQ = b.netQuinte, netT = b.netTierce;
+        const nbQ = entrees.filter(j => j.type === 'quinte').length;
+        const nbT = entrees.filter(j => j.type === 'tierce').length;
+
+        // Métriques sur JOURS regroupés
+        const nbJours = joursGroupes.length;
+        const nbGains = joursGroupes.filter(j => j.net > 0).length;
+        const bestJour = nbJours ? Math.max(...joursGroupes.map(j => j.net)) : 0;
+        const worstJour = nbJours ? Math.min(...joursGroupes.map(j => j.net)) : 0;
+
+        // Série en cours (sur jours regroupés)
+        let serie = 0, serieSens = 'neutral';
+        for (let i = joursGroupes.length - 1; i >= 0; i--) {
+            if (i === joursGroupes.length - 1) { serieSens = joursGroupes[i].net >= 0 ? 'win' : 'lose'; serie = 1; }
+            else if ((serieSens === 'win' && joursGroupes[i].net >= 0) || (serieSens === 'lose' && joursGroupes[i].net < 0)) serie++;
+            else break;
+        }
+
+        // Titre avec nom du profil
+        document.querySelector('#statsSection h2').innerText = `📊 BK & Stats — ${profilActif}`;
+
+        // Cards
+        document.getElementById('statsCards').innerHTML = `
+            <div class="stat-card ${totalNet >= 0 ? 'pos' : 'neg'}">
+                <div class="val">${totalNet >= 0 ? '+' : ''}${totalNet.toFixed(2)}€</div>
+                <div class="lbl">Net global</div>
+            </div>
+            <div class="stat-card neu">
+                <div class="val">${roiGlobal}%</div>
+                <div class="lbl">ROI / capital</div>
+            </div>
+            <div class="stat-card ${netQ >= 0 ? 'pos' : 'neg'}">
+                <div class="val">${netQ >= 0 ? '+' : ''}${netQ.toFixed(2)}€</div>
+                <div class="lbl">Net Quinté (${nbQ} paris)</div>
+            </div>
+            <div class="stat-card ${netT >= 0 ? 'pos' : 'neg'}">
+                <div class="val">${netT >= 0 ? '+' : ''}${netT.toFixed(2)}€</div>
+                <div class="lbl">Net Tiercé (${nbT} paris)</div>
+            </div>
+            <div class="stat-card pos">
+                <div class="val">${bestJour >= 0 ? '+' : ''}${bestJour.toFixed(2)}€</div>
+                <div class="lbl">Meilleur jour</div>
+            </div>
+            <div class="stat-card neg">
+                <div class="val">${worstJour.toFixed(2)}€</div>
+                <div class="lbl">Pire jour</div>
+            </div>
+            <div class="stat-card neu">
+                <div class="val">${nbGains}/${nbJours}</div>
+                <div class="lbl">Jours positifs</div>
+            </div>
+            <div class="stat-card neu">
+                <div class="val">${nbJours > 0 ? ((nbGains / nbJours) * 100).toFixed(0) : 0}%</div>
+                <div class="lbl">Taux de réussite</div>
+            </div>
+        `;
+
+        // Série (sur jours regroupés)
+        const serieEl = document.getElementById('serieBox');
+        serieEl.className = `serie-box serie-${serieSens}`;
+        if (nbJours === 0) serieEl.innerText = "Aucune journée enregistrée";
+        else if (serieSens === 'win') serieEl.innerHTML = `🔥 Série positive : <b>${serie} jour${serie > 1 ? 's' : ''}</b>`;
+        else serieEl.innerHTML = `❄️ Série négative : <b>${serie} jour${serie > 1 ? 's' : ''}</b>`;
+
+        // Tableau période
+        switchPeriode(periodeMode);
+
+        // ─── ANALYSE RAPPORTS ────────────────────────────────────────
+        renderRapAnalyse();
+        renderDiscAnalyse();
+
+        // Historique éditable
+        let h = "";
+        b.jours.forEach((j, i) => {
+            const discLabel = { trot: '🐎 Trot', plat: '🏁 Plat', obstacle: '🚧 Obs.' };
+            const discBadgeClass = { trot: 'disc-trot', plat: 'disc-plat', obstacle: 'disc-obstacle' };
+            const discHtml = j.discipline
+                ? `<span class="${discBadgeClass[j.discipline] || ''}">${discLabel[j.discipline] || j.discipline}</span> `
+                : '';
+            h += `<div class="list-item-bk">
+                <span><b>${j.date}</b> ${discHtml}[${j.type}] : <span class="${j.net >= 0 ? 'td-pos' : 'td-neg'}">${j.net >= 0 ? '+' : ''}${j.net.toFixed(2)}€</span></span>
+                <button onclick="supprimerLigneBK(${i})" style="width:auto; padding:5px 8px; background:#c62828; margin:0;">✕</button>
+            </div>`;
+        });
+        document.getElementById('historiqueListe').innerHTML = h || "<p style='color:#888; text-align:center;'>Historique vide.</p>";
+    }
+
+    // ─── ANALYSE DES RAPPORTS ────────────────────────────────────────
+    // Les entrées BK stockent le net (gains - mises). Pour analyser les rapports,
+    // on enrichit chaque entrée avec typeGain lors de la validation.
+    // Les entrées anciennes (sans typeGain) sont ignorées dans cette section.
+    function renderRapAnalyse() {
+        const section = document.getElementById('rapAnalyseSection');
+        const contenu = document.getElementById('rapAnalyseContenu');
+        const entreesAvecType = bk().jours.filter(j => j.typeGain);
+        if (entreesAvecType.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+
+        // Agréger par typeGain
+        let stats = {};
+        const labels = { ordre: 'Ordre', desordre: 'Désordre', bonus4: 'Bonus 4', bonus45: 'Bonus 4/5', bonus3: 'Bonus 3', nul: 'Rien' };
+        entreesAvecType.forEach(j => {
+            const k = j.typeGain || 'nul';
+            if (!stats[k]) stats[k] = { nb: 0, totalNet: 0, totalRap: 0, nbRap: 0 };
+            stats[k].nb++;
+            stats[k].totalNet += j.net;
+            if (j.rapport && j.rapport > 0) { stats[k].totalRap += j.rapport; stats[k].nbRap++; }
+        });
+
+        const total = entreesAvecType.length;
+        let html = `<table class="rap-table">
+            <tr><th>Type gain</th><th>Nb</th><th>Fréq.</th><th>Net total</th><th>Rapport moy.</th><th>Rentable ?</th></tr>`;
+        const ordre = ['ordre','desordre','bonus4','bonus45','bonus3','nul'];
+        ordre.forEach(k => {
+            if (!stats[k]) return;
+            const s = stats[k];
+            const freq = ((s.nb / total) * 100).toFixed(0);
+            const netMoy = (s.totalNet / s.nb).toFixed(2);
+            const rapMoy = s.nbRap > 0 ? (s.totalRap / s.nbRap).toFixed(2) + '€' : '—';
+            let badge, bClass;
+            if (s.totalNet > 0) { badge = '✅ Rentable'; bClass = 'badge-rentable'; }
+            else if (s.totalNet === 0) { badge = '⚖️ Neutre'; bClass = 'badge-neutre'; }
+            else { badge = '❌ Perd'; bClass = 'badge-perd'; }
+            const cl = s.totalNet >= 0 ? 'td-pos' : 'td-neg';
+            html += `<tr>
+                <td><b>${labels[k] || k}</b></td>
+                <td>${s.nb}</td>
+                <td>${freq}%</td>
+                <td class="${cl}">${s.totalNet >= 0 ? '+' : ''}${s.totalNet.toFixed(2)}€</td>
+                <td>${rapMoy}</td>
+                <td><span class="${bClass}">${badge}</span></td>
+            </tr>`;
+        });
+        html += '</table>';
+        html += `<p style="font-size:0.75em; color:#888; margin-top:8px;">Basé sur ${total} entrée(s) avec type de gain enregistré.</p>`;
+        contenu.innerHTML = html;
+    }
+
+    // ─── ANALYSE PAR DISCIPLINE ──────────────────────────────────────
+    function renderDiscAnalyse() {
+        const section = document.getElementById('discAnalyseSection');
+        const contenu = document.getElementById('discAnalyseContenu');
+        const entreesAvecDisc = bk().jours.filter(j => j.discipline);
+        if (entreesAvecDisc.length === 0) { section.style.display = 'none'; return; }
+        section.style.display = 'block';
+
+        const disciplines = ['trot', 'plat', 'obstacle'];
+        const discLabels = { trot: '🐎 Trot', plat: '🏁 Plat', obstacle: '🚧 Obstacle' };
+        const discBadge = { trot: 'disc-trot', plat: 'disc-plat', obstacle: 'disc-obstacle' };
+
+        // Agréger par discipline — sur JOURS regroupés pour nb/% pos, sur entrées pour nets par type
+        // D'abord regrouper les entrées par (date + discipline) pour les stats journalières
+        let joursParDisc = {}; // { trot: { '19/04/2026': { net: X, paris: [...] } } }
+        disciplines.forEach(d => { joursParDisc[d] = {}; });
+
+        entreesAvecDisc.forEach(j => {
+            const d = j.discipline;
+            if (!joursParDisc[d]) return;
+            if (!joursParDisc[d][j.date]) joursParDisc[d][j.date] = { net: 0, paris: [] };
+            joursParDisc[d][j.date].net += j.net;
+            joursParDisc[d][j.date].paris.push(j);
+        });
+
+        let byDisc = {};
+        disciplines.forEach(d => {
+            const jours = Object.values(joursParDisc[d]);
+            const nb = jours.length;
+            const totalNet = jours.reduce((s, j) => s + j.net, 0);
+            const nbPos = jours.filter(j => j.net > 0).length;
+            const bestNet = nb ? Math.max(...jours.map(j => j.net)) : -Infinity;
+            // nets par type de pari (sur entrées individuelles)
+            const parType = {};
+            entreesAvecDisc.filter(j => j.discipline === d).forEach(j => {
+                const tp = j.type || 'quinte';
+                if (!parType[tp]) parType[tp] = { nb: 0, net: 0 };
+                parType[tp].nb++; parType[tp].net += j.net;
+            });
+            byDisc[d] = { nb, totalNet, nbPos, bestNet, parType };
+        });
+
+        const totalJours = disciplines.reduce((s, d) => s + byDisc[d].nb, 0);
+
+        // Tableau récapitulatif
+        let html = `<table class="disc-table">
+            <tr><th>Discipline</th><th>Jours</th><th>% pos.</th><th>Net total</th><th>Net/jour</th><th>Meilleur</th></tr>`;
+        disciplines.forEach(d => {
+            const s = byDisc[d];
+            if (s.nb === 0) return;
+            const pct = ((s.nbPos / s.nb) * 100).toFixed(0);
+            const netMoy = (s.totalNet / s.nb).toFixed(2);
+            const cl = s.totalNet >= 0 ? 'td-pos' : 'td-neg';
+            const best = s.bestNet === -Infinity ? '—' : (s.bestNet >= 0 ? '+' : '') + s.bestNet.toFixed(2) + '€';
+            html += `<tr>
+                <td><span class="${discBadge[d]}">${discLabels[d]}</span></td>
+                <td>${s.nb}</td>
+                <td>${pct}%</td>
+                <td class="${cl}">${s.totalNet >= 0 ? '+' : ''}${s.totalNet.toFixed(2)}€</td>
+                <td class="${cl}">${netMoy >= 0 ? '+' : ''}${netMoy}€</td>
+                <td style="color:#2e7d32;font-weight:bold;">${best}</td>
+            </tr>`;
+        });
+        html += '</table>';
+
+        // Détail Quinté vs Tiercé par discipline (nb = paris individuels)
+        html += `<h3 style="color:#37474f;margin-top:14px;">Quinté / Tiercé par discipline</h3>`;
+        html += `<table class="disc-table"><tr><th>Discipline</th><th>Quinté (nb)</th><th>Net Quinté</th><th>Tiercé (nb)</th><th>Net Tiercé</th></tr>`;
+        disciplines.forEach(d => {
+            const s = byDisc[d];
+            if (s.nb === 0) return;
+            const q = s.parType['quinte'] || { nb: 0, net: 0 };
+            const t = s.parType['tierce'] || { nb: 0, net: 0 };
+            const clQ = q.net >= 0 ? 'td-pos' : 'td-neg';
+            const clT = t.net >= 0 ? 'td-pos' : 'td-neg';
+            html += `<tr>
+                <td><span class="${discBadge[d]}">${discLabels[d]}</span></td>
+                <td>${q.nb > 0 ? q.nb : '—'}</td>
+                <td class="${clQ}">${q.nb > 0 ? (q.net >= 0 ? '+' : '') + q.net.toFixed(2) + '€' : '—'}</td>
+                <td>${t.nb > 0 ? t.nb : '—'}</td>
+                <td class="${clT}">${t.nb > 0 ? (t.net >= 0 ? '+' : '') + t.net.toFixed(2) + '€' : '—'}</td>
+            </tr>`;
+        });
+        html += '</table>';
+
+        // Podium
+        const sorted = disciplines.filter(d => byDisc[d].nb > 0).sort((a, b) => byDisc[b].totalNet - byDisc[a].totalNet);
+        if (sorted.length > 0) {
+            const best = sorted[0];
+            const cl = byDisc[best].totalNet >= 0 ? '#2e7d32' : '#c62828';
+            html += `<div style="margin-top:10px;padding:10px;border-radius:8px;background:white;text-align:center;font-size:0.85em;font-weight:bold;color:${cl};">
+                🏆 Meilleure discipline : ${discLabels[best]} — Net ${byDisc[best].totalNet >= 0 ? '+' : ''}${byDisc[best].totalNet.toFixed(2)}€
+            </div>`;
+        }
+
+        html += `<p style="font-size:0.75em;color:#888;margin-top:8px;">Basé sur ${totalJours} jour(s) avec discipline enregistrée.</p>`;
+        contenu.innerHTML = html;
+    }
+
+    // ─── TABLEAU PÉRIODE ─────────────────────────────────────────────
+    function switchPeriode(mode, btn) {
+        periodeMode = mode;
+        document.querySelectorAll('.periode-tab').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        else {
+            const tabs = document.querySelectorAll('.periode-tab');
+            if (mode === 'semaine' && tabs[0]) tabs[0].classList.add('active');
+            if (mode === 'mois' && tabs[1]) tabs[1].classList.add('active');
+        }
+        renderTableauPeriode(mode);
+    }
+
+    function parseDateFr(str) {
+        // Accepts dd/mm or dd/mm/yyyy
+        const parts = str.split('/');
+        if (parts.length >= 2) {
+            const d = parseInt(parts[0]), m = parseInt(parts[1]) - 1;
+            const y = parts.length === 3 ? parseInt(parts[2]) : new Date().getFullYear();
+            return new Date(y, m, d);
+        }
+        return null;
+    }
+
+    function getWeekKey(date) {
+        // ISO week: year + W + week number
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+        const yearStart = new Date(d.getFullYear(), 0, 1);
+        const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return `${d.getFullYear()}-S${String(week).padStart(2, '0')}`;
+    }
+
+    function getMonthKey(date) {
+        const mois = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+        return `${mois[date.getMonth()]} ${date.getFullYear()}`;
+    }
+
+    function renderTableauPeriode(mode) {
+        const container = document.getElementById('tableauPeriode');
+        if (!container) return;
+
+        // Regrouper
+        let groupes = {};
+        bk().jours.forEach(j => {
+            const date = parseDateFr(j.date);
+            if (!date) return;
+            const key = mode === 'semaine' ? getWeekKey(date) : getMonthKey(date);
+            if (!groupes[key]) groupes[key] = { quinte: 0, tierce: 0, total: 0, nbQ: 0, nbT: 0 };
+            if (j.type === 'quinte') { groupes[key].quinte += j.net; groupes[key].nbQ++; }
+            else { groupes[key].tierce += j.net; groupes[key].nbT++; }
+            groupes[key].total += j.net;
+        });
+
+        const keys = Object.keys(groupes);
+        if (keys.length === 0) {
+            container.innerHTML = "<p style='color:#888; text-align:center; font-size:0.85em;'>Aucune donnée.</p>";
+            return;
+        }
+
+        let html = `<table class="bk-table">
+            <tr><th>${mode === 'semaine' ? 'Semaine' : 'Mois'}</th><th>Quinté</th><th>Tiercé</th><th>Total</th></tr>`;
+        keys.reverse().forEach(k => {
+            const g = groupes[k];
+            const clQ = g.quinte >= 0 ? 'td-pos' : 'td-neg';
+            const clT = g.tierce >= 0 ? 'td-pos' : 'td-neg';
+            const clTot = g.total >= 0 ? 'td-pos' : 'td-neg';
+            html += `<tr>
+                <td><b>${k}</b></td>
+                <td class="${clQ}">${g.nbQ > 0 ? (g.quinte >= 0 ? '+' : '') + g.quinte.toFixed(2) + '€' : '—'}</td>
+                <td class="${clT}">${g.nbT > 0 ? (g.tierce >= 0 ? '+' : '') + g.tierce.toFixed(2) + '€' : '—'}</td>
+                <td class="${clTot}"><b>${g.total >= 0 ? '+' : ''}${g.total.toFixed(2)}€</b></td>
+            </tr>`;
+        });
+        html += '</table>';
+        container.innerHTML = html;
+    }
+
+    // ─── DIVERS ──────────────────────────────────────────────────────
+    function supprimerLigneBK(i) {
+        if (confirm("Supprimer cette ligne ?")) { bk().jours.splice(i, 1); recalculerSolde(); renderStats(); }
+    }
+
+    function ajusterInterfaceLocal(isFirstLoad = false) {
+        const type = document.getElementById('typePari').value;
+        const flexSelect = document.getElementById('flexiSelect');
+        const nb = (type === 'tierce') ? 3 : 5;
+        const cont = document.getElementById('arriveeContainer');
+        cont.innerHTML = "";
+        for (let i = 1; i <= nb; i++) cont.innerHTML += `<input type="number" id="a${i}" class="arrivee-input" value="${isFirstLoad ? profils[profilActif].arrivee[i - 1] || '' : ''}">`;
+        flexSelect.options[2].disabled = (type === 'tierce');
+        if (type === 'tierce' && flexSelect.value == "0.25") flexSelect.value = "0.5";
+        document.getElementById('bonusSection').style.display = (type === 'tierce') ? 'none' : 'block';
+        const cibleB3 = document.getElementById('cible-b3');
+        if (cibleB3) cibleB3.style.display = (type === 'tierce') ? 'none' : 'inline-block';
+        const cibleB4 = document.getElementById('cible-b4');
+        if (cibleB4) cibleB4.style.display = (type === 'tierce') ? 'none' : 'inline-block';
+        const cibleB45 = document.getElementById('cible-b45');
+        if (cibleB45) cibleB45.style.display = (type === 'tierce') ? 'none' : 'inline-block';
+    }
+
+    function sauvegarderEtatActuel() {
+        let p = profils[profilActif]; if (!p) return;
+        // Vérifier que le DOM affiché correspond bien au profil actif
+        const domProfil = document.getElementById('appBody').dataset.profil;
+        if (domProfil && domProfil !== profilActif) return;
+        p.typePari = document.getElementById('typePari') ? document.getElementById('typePari').value : p.typePari;
+        const flexEl = document.getElementById('flexiSelect');
+        if (flexEl) p.flexi = flexEl.value;
+        for (let i = 1; i <= 8; i++) {
+            const hEl = document.getElementById('h' + i);
+            const bEl = document.getElementById('b' + i);
+            if (hEl) p.chevaux[i - 1] = hEl.value;
+            if (bEl) p.bases[i - 1] = bEl.checked;
+        }
+        if (document.getElementById('rapO')) {
+            p.rapports = { o: document.getElementById('rapO').value, d: document.getElementById('rapD').value, b4: document.getElementById('rapB4').value, b45: document.getElementById('rapB45').value, b3: document.getElementById('rapB3').value };
+            for (let i = 1; i <= 5; i++) if (document.getElementById('a' + i)) p.arrivee[i - 1] = document.getElementById('a' + i).value;
+        }
+        sauvegarderLS();
+    }
+
+    function afficherLocal() {
+        let p = profils[profilActif], h = "<h2>Tickets</h2>";
+        p.tickets.forEach((t, i) => {
+            h += `<div class="ticket" id="tk-${i}" style="position:relative;">
+                <strong>TK ${i + 1}</strong>: ${t.lbl}<br>Coût: ${t.m.toFixed(2)}€
+                <button onclick="supprimerTicket(${i})" style="position:absolute;top:6px;right:6px;width:auto;padding:3px 8px;background:#c62828;font-size:0.75em;margin:0;border-radius:4px;">✕</button>
+            </div>`;
+        });
+        document.getElementById('displayTickets').innerHTML = h;
+    }
+
+    function supprimerTicket(i) {
+        if (!confirm(`Supprimer TK ${i + 1} ?`)) return;
+        let p = profils[profilActif];
+        p.miseTotal -= p.tickets[i].m;
+        p.tickets.splice(i, 1);
+        sauvegarderLS();
+        // Si un calcul de gains était déjà affiché, on recalcule automatiquement
+        const dejaCalcule = document.getElementById('btnValidationBK').style.display === 'block';
+        if (dejaCalcule && p.tickets.length > 0) {
+            afficherLocal();
+            calculerLocal();
+        } else {
+            afficherLocal();
+            document.getElementById('hiddenNetValue').value = 0;
+            document.getElementById('btnValidationBK').style.display = 'none';
+            document.getElementById('bilanFinal').innerHTML = '';
+        }
+    }
+
+    function selectProfil(nom) { if (profilActif && profils[profilActif]) sauvegarderEtatActuel(); profilActif = nom; chargerProfil(nom); renderTabs(); updateBkDisplay(); sauvegarderLS(); }
+    function renderTabs() { let h = ""; for (let n in profils) h += `<div class="tab ${n === profilActif ? 'active' : ''}" onclick="selectProfil('${n}')">${n}</div>`; document.getElementById('tabBar').innerHTML = h; }
+    function supprimerProfilActuel() { if (confirm("Supprimer ce profil ?")) { delete profils[profilActif]; let k = Object.keys(profils); sauvegarderLS(); if (k.length) selectProfil(k[0]); else { profilActif = ""; document.getElementById('appBody').innerHTML = ""; renderTabs(); } } }
+    function definirCapital() { let c = prompt("Capital de départ :"); if (c) { bk().capital = parseFloat(c); recalculerSolde(); sauvegarderLS(); } }
+    function resetBK() { if (confirm("RAZ totale de la BK ?")) { profils[profilActif].bankroll = newBK(); recalculerSolde(); renderStats(); sauvegarderLS(); } }
+
+    // ─── DÉMARRAGE ───────────────────────────────────────────────────
+    chargerLS();
+    if (Object.keys(profils).length > 0) {
+        renderTabs();
+        if (profilActif) { chargerProfil(profilActif); }
+        else { const k = Object.keys(profils)[0]; selectProfil(k); }
+        recalculerSolde();
+        showToast("✅ Données restaurées !");
+    } else {
+        ajouterProfil();
+    }
+</script>
+</body>
+</html>
